@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>孕期小助手 · 产检与胎儿发育周历</title>
+<style>
+body{
+  margin:0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft YaHei";
+  background:#f5f7fb;
+}
+
+/* 顶部 Banner */
+.header{
+  background:linear-gradient(120deg,#fbd3e9,#bbd6ff);
+  padding:40px 20px 60px;
+  color:#3a1f5d;
+}
+.header-inner{
+  max-width:1100px;
+  margin:0 auto;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:20px;
+  flex-wrap:wrap;
+}
+.title h1{
+  margin:0;
+}
+.title p{
+  margin:6px 0 0;
+  opacity:0.85;
+}
+.date-box{
+  background:rgba(255,255,255,0.7);
+  padding:12px 16px;
+  border-radius:12px;
+  box-shadow:0 4px 12px rgba(0,0,0,.08);
+}
+.date-box input{
+  border:none;
+  background:transparent;
+  font-size:16px;
+}
+
+/* 仪表盘 */
+.dashboard{
+  max-width:1100px;
+  margin:-40px auto 20px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:16px;
+  padding:0 16px;
+}
+.card{
+  background:white;
+  border-radius:16px;
+  padding:16px;
+  box-shadow:0 6px 14px rgba(0,0,0,.06);
+}
+.card h3{
+  margin:0;
+  font-size:14px;
+  color:#666;
+}
+.card .value{
+  margin-top:8px;
+  font-size:22px;
+  font-weight:600;
+  color:#3a1f5d;
+}
+
+/* 时间轴 */
+.timeline-wrap{
+  max-width:1100px;
+  margin:0 auto 40px;
+  padding:0 16px;
+}
+.timeline{
+  margin-top:20px;
+}
+.week{
+  background:white;
+  border-radius:14px;
+  padding:16px;
+  margin-bottom:12px;
+  border-left:6px solid #e6e9ff;
+  transition:transform .2s;
+}
+.week:hover{
+  transform:translateY(-2px);
+}
+.week.current{
+  border-left-color:#8b5cf6;
+  background:#f5f2ff;
+}
+.week .top{
+  display:flex;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.week .range{
+  color:#666;
+  font-size:13px;
+}
+.tags{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+  margin-top:8px;
+}
+.tag{
+  font-size:12px;
+  padding:3px 8px;
+  border-radius:999px;
+  background:#eef2ff;
+  color:#4338ca;
+}
+.tag.important{
+  background:#ffe6f0;
+  color:#c2185b;
+}
+.content{
+  margin-top:10px;
+  font-size:14px;
+  line-height:1.6;
+}
+.section{
+  margin-top:6px;
+}
+.section b{
+  color:#3a1f5d;
+}
+
+/* 预产期特殊高亮 */
+.week.edd{
+  background:#fff6e5;
+  border-left-color:#ffb703;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="title">
+      <h1>孕期小助手 · 产检与胎儿发育周历</h1>
+      <p>输入末次月经日期，即可获得你的专属孕期地图</p>
+    </div>
+    <div class="date-box">
+      📅 <input type="date" id="lmp">
+    </div>
+  </div>
+</div>
+
+<div class="dashboard">
+  <div class="card">
+    <h3>当前孕周</h3>
+    <div class="value" id="curWeek">—</div>
+  </div>
+  <div class="card">
+    <h3>已怀孕天数</h3>
+    <div class="value" id="days">—</div>
+  </div>
+  <div class="card">
+    <h3>预计预产期</h3>
+    <div class="value" id="edd">—</div>
+  </div>
+  <div class="card">
+    <h3>距离预产期</h3>
+    <div class="value" id="remain">—</div>
+  </div>
+</div>
+
+<div class="timeline-wrap">
+  <h2>孕期周历（1～40周）</h2>
+  <div id="timeline" class="timeline"></div>
+</div>
+
+<script>
+const today = new Date();
+const lmpInput = document.getElementById("lmp");
+const timeline = document.getElementById("timeline");
+
+// 关键节点配置
+const milestones = [
+  {min:4, max:6, label:"💗 怀孕确认", type:"important"},
+  {min:8, max:12, label:"📁 建档建议", type:"important"},
+  {min:11, max:13.8, label:"🧪 NT检查", type:"important"},
+  {min:15, max:20, label:"🩺 唐筛建议", type:"important"},
+  {min:20, max:24, label:"🔍 大排畸", type:"important"},
+  {min:28, max:28, label:"🌙 进入孕晚期"},
+  {min:32, max:32, label:"🏖️ 产假准备"},
+  {min:36, max:40, label:"⏱️ 预产期倒计时"}
+];
+
+// 简单科普占位文案（可后续替换为更专业版本）
+function babyText(week){
+  return `本周胎儿持续发育，重要器官逐步成熟，生长速度明显提升。`;
+}
+function momText(week){
+  return `保持规律作息，均衡饮食，如有不适及时就医。`;
+}
+
+lmpInput.addEventListener("change", ()=>{
+  if(!lmpInput.value) return;
+  const lmp = new Date(lmpInput.value + "T00:00:00");
+
+  // 计算基础数据
+  const edd = new Date(lmp.getTime() + 280*24*3600*1000);
+  const diffDays = Math.floor((today - lmp) / (24*3600*1000));
+  const weeks = Math.floor(diffDays / 7);
+  const days = diffDays % 7;
+
+  document.getElementById("curWeek").textContent =
+      `${Math.max(0,weeks)}周 + ${Math.max(0,days)}天`;
+  document.getElementById("days").textContent = `${Math.max(0,diffDays)} 天`;
+  document.getElementById("edd").textContent =
+      edd.toISOString().slice(0,10);
+  document.getElementById("remain").textContent =
+      `${Math.max(0, Math.floor((edd - today)/(24*3600*1000)))} 天`;
+
+  // 生成时间轴
+  timeline.innerHTML = "";
+  for(let w=1; w<=40; w++){
+    const start = new Date(lmp.getTime() + (w-1)*7*24*3600*1000);
+    const end = new Date(start.getTime() + 6*24*3600*1000);
+
+    const weekDiv = document.createElement("div");
+    weekDiv.className = "week";
+    if(w === weeks+1) weekDiv.classList.add("current");
+    if(w === 40) weekDiv.classList.add("edd");
+
+    // 标签
+    let tagsHtml = "";
+    milestones.forEach(m=>{
+      if(w >= m.min && w <= m.max){
+        tagsHtml += `<span class="tag ${m.type||""}">${m.label}</span>`;
+      }
+    });
+
+    weekDiv.innerHTML = `
+      <div class="top">
+        <div><b>第 ${w} 周</b></div>
+        <div class="range">${fmt(start)} 至 ${fmt(end)}</div>
+      </div>
+      <div class="tags">${tagsHtml}</div>
+      <div class="content">
+        <div class="section"><b>👶 胎儿发育：</b>${babyText(w)}</div>
+        <div class="section"><b>🤰 妈妈提醒：</b>${momText(w)}</div>
+      </div>
+    `;
+    timeline.appendChild(weekDiv);
+  }
+});
+
+function fmt(d){
+  return d.toISOString().slice(0,10);
+}
+</script>
+</body>
+</html>

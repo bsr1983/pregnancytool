@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>孕期小助手 · 产检与胎儿发育周历</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #fef7f7 0%, #f3e8ff 100%);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* ========== 顶部 Banner 区 ========== */
+        .banner {
+            background: linear-gradient(135deg, #ffeef5 0%, #f3e8ff 100%);
+            padding: 40px 20px;
+            border-radius: 0 0 30px 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+        }
+
+        .banner-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .banner-left {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .banner-title {
+            font-size: 32px;
+            font-weight: 600;
+            color: #8b5a9f;
+            margin-bottom: 8px;
+        }
+
+        .banner-subtitle {
+            font-size: 16px;
+            color: #666;
+            font-weight: 400;
+        }
+
+        .banner-right {
+            display: flex;
+            align-items: center;
+        }
+
+        .date-input-wrapper {
+            position: relative;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            padding: 12px 16px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .date-input-wrapper::before {
+            content: "📅";
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        .date-input {
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            color: #333;
+            outline: none;
+            width: 220px;
+        }
+
+        .date-input::placeholder {
+            color: #999;
+        }
+
+        /* ========== 中部仪表盘 ========== */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .dashboard-card-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .dashboard-card-label {
+            font-size: 14px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+
+        .dashboard-card-value {
+            font-size: 28px;
+            font-weight: 600;
+            color: #8b5a9f;
+        }
+
+        /* ========== 底部时间轴 ========== */
+        .timeline-section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 40px;
+        }
+
+        .timeline-header {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .timeline-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .week-card {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            background: #fafafa;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .week-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            border-color: #e0d0e8;
+        }
+
+        .week-card.current-week {
+            background: linear-gradient(135deg, #fff0f5 0%, #f3e8ff 100%);
+            border-color: #d4a5e8;
+            box-shadow: 0 4px 20px rgba(139, 90, 159, 0.2);
+        }
+
+        .week-card.week-40 {
+            background: linear-gradient(135deg, #ffe4e1 0%, #ffd4d4 100%);
+            border-color: #ff9999;
+            box-shadow: 0 4px 20px rgba(255, 153, 153, 0.3);
+        }
+
+        .week-number {
+            min-width: 80px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #8b5a9f;
+            padding: 8px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .week-content {
+            flex: 1;
+        }
+
+        .week-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .week-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .week-date-range {
+            font-size: 14px;
+            color: #999;
+        }
+
+        .week-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .week-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .week-tag.confirm { background: #ffe0e6; color: #d63384; }
+        .week-tag.file { background: #e7f3ff; color: #0d6efd; }
+        .week-tag.nt { background: #fff3cd; color: #856404; }
+        .week-tag.screen { background: #d1ecf1; color: #0c5460; }
+        .week-tag.ultrasound { background: #d4edda; color: #155724; }
+        .week-tag.late { background: #f3e5f5; color: #6f42c1; }
+        .week-tag.leave { background: #fff4e6; color: #e65100; }
+        .week-tag.countdown { background: #ffe0e6; color: #c2185b; }
+        .week-tag.due { background: #ffcccc; color: #d32f2f; font-weight: 600; }
+
+        .week-modules {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .week-module {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 3px solid #d4a5e8;
+        }
+
+        .week-module-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #8b5a9f;
+            margin-bottom: 8px;
+        }
+
+        .week-module-content {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .current-week-badge {
+            display: inline-block;
+            background: #8b5a9f;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .banner-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .banner-title {
+                font-size: 24px;
+            }
+
+            .dashboard {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .week-card {
+                flex-direction: column;
+            }
+
+            .week-number {
+                width: 100%;
+            }
+
+            .week-modules {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 动画 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .week-card {
+            animation: fadeIn 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部 Banner 区 -->
+        <div class="banner">
+            <div class="banner-content">
+                <div class="banner-left">
+                    <h1 class="banner-title">孕期小助手 · 产检与胎儿发育周历</h1>
+                    <p class="banner-subtitle">输入末次月经日期，即可获得你的专属孕期周历</p>
+                </div>
+                <div class="banner-right">
+                    <div class="date-input-wrapper">
+                        <input 
+                            type="date" 
+                            id="lmpDate" 
+                            class="date-input" 
+                            placeholder="请选择末次月经日期"
+                        >
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 中部仪表盘 -->
+        <div class="dashboard" id="dashboard">
+            <div class="dashboard-card">
+                <div class="dashboard-card-icon">🤰</div>
+                <div class="dashboard-card-label">当前孕周</div>
+                <div class="dashboard-card-value" id="currentWeek">--</div>
+            </div>
+            <div class="dashboard-card">
+                <div class="dashboard-card-icon">📅</div>
+                <div class="dashboard-card-label">已怀孕天数</div>
+                <div class="dashboard-card-value" id="pregnantDays">--</div>
+            </div>
+            <div class="dashboard-card">
+                <div class="dashboard-card-icon">🎯</div>
+                <div class="dashboard-card-label">预计预产期</div>
+                <div class="dashboard-card-value" id="dueDate">--</div>
+            </div>
+            <div class="dashboard-card">
+                <div class="dashboard-card-icon">⏰</div>
+                <div class="dashboard-card-label">距离预产期</div>
+                <div class="dashboard-card-value" id="daysRemaining">--</div>
+            </div>
+        </div>
+
+        <!-- 底部时间轴 -->
+        <div class="timeline-section">
+            <h2 class="timeline-header">孕周时间轴</h2>
+            <div class="timeline-list" id="timelineList">
+                <!-- 时间轴内容由 JavaScript 动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 孕期数据（1-40周）
+        const pregnancyData = {
+            // 第1-3周：早期发育
+            1: {
+                development: "受精卵形成并开始分裂，准备着床。这是生命最初的阶段，细胞快速增殖，为后续发育奠定基础。受精卵体积约0.1-0.2毫米，肉眼无法察觉。",
+                tips: "保持健康的生活方式，避免接触有害物质。建议每日补充400-800微克叶酸，有助于预防神经管缺陷。避免饮酒和吸烟，限制咖啡因摄入（每日不超过200毫克）。"
+            },
+            2: {
+                development: "受精卵继续分裂，形成囊胚并开始向子宫移动。子宫内膜开始为着床做准备，为胚胎提供营养支持。",
+                tips: "注意休息，避免剧烈运动和重体力劳动。保持心情愉悦，避免焦虑和紧张情绪。在前3个月内避免同房，以降低流产风险。"
+            },
+            3: {
+                development: "胚胎开始着床，细胞快速分裂，形成三胚层结构（外胚层、中胚层、内胚层）。这是器官发育的关键起点，决定了未来各器官系统的形成。",
+                tips: "继续每日补充400-800微克叶酸。避免接触烟酒和有害化学物质。避免食用生冷食物（如生鱼片、未煮熟的肉类、生鸡蛋），以防感染李斯特菌。如有不适及时咨询医生。"
+            },
+            // 第4-6周：器官形成期
+            4: {
+                development: "胚胎着床完成，神经管开始形成，这是大脑和脊髓的雏形。心脏开始跳动，血液循环系统初步建立。胚胎长度约0.2-0.3厘米，体重约0.2克。",
+                tips: "确认怀孕后，建议预约首次产检（6-8周）。注意营养均衡，多摄入优质蛋白质和维生素。避免食用高汞鱼类（如鲨鱼、旗鱼），减少对胎儿神经系统的潜在危害。"
+            },
+            5: {
+                development: "胚胎快速发育，四肢开始萌芽，面部特征开始显现。心脏跳动更加规律，血液循环系统进一步完善。胚胎长度约0.4厘米，进入胚胎期，羊膜腔扩大，原始心血管开始出现。",
+                tips: "避免过度劳累，保证充足睡眠。可以开始记录孕期日记，记录这个特殊时期的变化。继续补充叶酸，注意避免接触有害辐射（如X光检查）。"
+            },
+            6: {
+                development: "大脑快速发育，眼睛和耳朵开始形成。头部、脑泡、额面器官、呼吸、消化、神经等器官开始分化。胚胎长度约0.85厘米，开始具有人类雏形。",
+                tips: "保持心情愉悦，可以开始听一些轻柔的音乐进行胎教。注意饮食卫生，避免生冷食物和辛辣刺激性食物。避免剧烈运动，可进行适度的轻缓运动，如散步。"
+            },
+            // 第7-10周：快速成长期
+            7: {
+                development: "手指和脚趾开始分离，面部特征更加清晰。宝宝开始有吞咽和打嗝的动作，消化系统开始发育。体节已全部分化，四肢开始显现。胚胎长度约1.33厘米，具有人类雏形。",
+                tips: "继续每日补充400-800微克叶酸和多种维生素。可以开始进行适当的孕期运动，如散步、孕妇瑜伽等，每周约150分钟中等强度运动。避免可能导致摔倒或腹部受压的高风险运动。"
+            },
+            8: {
+                development: "所有主要器官开始形成，骨骼开始硬化。胎形已定，可分辨出胎头、躯干及四肢，胎头大于躯干。宝宝开始有更多的动作，虽然你还感觉不到。胚胎长度约1.66厘米。",
+                tips: "注意营养均衡，多摄入富含钙质的食物（每日约1000毫克钙）。避免接触有害辐射，如X光等。准备建档资料，了解当地医院建档流程（8-12周）。"
+            },
+            9: {
+                development: "宝宝开始有更多的动作，可能会踢腿和伸展。生殖器官开始发育，但性别还无法确定。各部位更清晰，头颅开始钙化。胚胎长度约2.15厘米。",
+                tips: "保持适度运动，避免久坐。可以开始准备孕期服装，选择舒适宽松的款式。注意补充优质蛋白质（如瘦肉、鱼类、蛋类、豆类），每日摄入量应充足。"
+            },
+            10: {
+                development: "手指和脚趾完全分开，指甲开始生长。各器官均已形成，胎盘开始发育。宝宝开始有规律的睡眠和清醒周期。胚胎长度约2.83厘米。",
+                tips: "注意补充铁质，预防孕期贫血。富含铁的食物包括红肉、禽类、鱼类、豆类，与维生素C丰富的食物（如柑橘类水果）一起食用有助于铁的吸收。可以开始了解产检流程，为后续检查做准备。"
+            },
+            // 第11-14周：稳定期
+            11: {
+                development: "宝宝开始有吞咽和打嗝的动作，消化系统继续发育。面部表情更加丰富，可以皱眉和微笑。这是进行早期唐氏筛查的关键时期。",
+                tips: "准备建档资料，了解当地医院建档流程（8-12周）。可以开始进行胎教，与宝宝说话、播放柔和的音乐，有助于胎儿的听觉发育和情绪稳定。继续补充叶酸（每日约600微克）。"
+            },
+            12: {
+                development: "宝宝的手指和脚趾已经分开，可以握拳了。神经系统快速发育，开始对外界刺激有反应。身长约6-7厘米，体重约14克，双顶径约2.0厘米，股骨长约1.0厘米。",
+                tips: "完成NT检查（11-13+6周），建立孕期档案。这是重要的产检节点，可以了解宝宝的初步发育情况和染色体异常风险。进行血常规、尿常规、血型、肝肾功能、甲状腺功能、传染病筛查等基础检查。"
+            },
+            13: {
+                development: "宝宝开始有表情，可以皱眉和微笑。听觉系统开始发育，可以感受到外界的声音。这是NT检查的最后期限（13+6周前）。",
+                tips: "继续补充营养，注意钙质（每日约1000毫克）和铁质的摄入。可以开始了解分娩知识，为未来做准备。保持情绪稳定，避免焦虑和紧张。"
+            },
+            14: {
+                development: "宝宝开始有呼吸运动，虽然还在羊水中。消化系统继续发育，开始有规律的吞咽动作。胎盘功能进一步完善，为宝宝提供充足的营养和氧气。",
+                tips: "注意饮食卫生，避免生冷食物和未煮熟的食物。可以开始进行适当的孕期运动，保持身体健康。继续补充DHA（可通过深海鱼类如三文鱼、沙丁鱼获取），有助于胎儿大脑和视力发育。"
+            },
+            // 第15-20周：感受期
+            15: {
+                development: "宝宝可以听到声音了，开始对外界有反应。肌肉和骨骼继续发育，动作更加有力。这是进行唐氏筛查的适宜时期。",
+                tips: "可以开始胎教了，多和宝宝说话、朗读故事、播放柔和的音乐，有助于促进亲子关系和胎儿语言能力的发展。注意保持心情愉悦，避免情绪波动。继续补充优质蛋白质、钙质和铁质。"
+            },
+            16: {
+                development: "宝宝开始有规律的睡眠和清醒周期，动作更加协调。皮肤开始变得透明，可以看到血管。身长约16-25厘米，体重约60-140克，双顶径约3.6厘米，股骨长约2.1厘米。",
+                tips: "完成唐筛或无创DNA检查（15-20周），了解宝宝的染色体情况。注意补充营养，保持身体健康。可以开始轻柔地抚摸腹部，与胎儿互动，增强母婴之间的情感联系。"
+            },
+            17: {
+                development: "宝宝开始有更多的动作，可能会踢腿。听觉系统继续发育，可以听到你的声音和心跳。这是很多准妈妈开始感受到胎动的时期。",
+                tips: "开始感受胎动，记录宝宝的活跃时间。可以开始准备婴儿用品，为宝宝出生做准备。注意运动时观察身体反应，如出现头晕、呼吸困难、胸痛或阴道出血，应立即停止并咨询医生。"
+            },
+            18: {
+                development: "宝宝的骨骼开始硬化，可以听到心跳声。消化系统继续发育，开始有规律的吞咽动作。动作更加协调有力。",
+                tips: "保持适度运动，避免久坐。可以开始了解分娩方式，为未来选择做准备。继续补充钙质（每日约1000毫克），可通过牛奶、酸奶、奶酪、豆腐和绿叶蔬菜等食物获取。"
+            },
+            19: {
+                development: "宝宝开始有规律的吞咽羊水，消化系统继续发育。皮肤开始变得不透明，开始有脂肪积累。动作更加频繁有力。",
+                tips: "注意补钙，预防孕期缺钙。可以开始进行孕期瑜伽或游泳，保持身体柔韧性。每周进行150分钟的中等强度有氧运动，如散步、游泳或孕妇瑜伽。避免可能导致摔倒或腹部受压的高风险运动。"
+            },
+            20: {
+                development: "宝宝开始有更多的表情和动作，可能会踢腿和伸展。神经系统快速发育，开始有记忆能力。身长约25厘米，体重约300克，双顶径约4.5-5.0厘米，股骨长约3.0-3.5厘米。",
+                tips: "完成大排畸检查（20-24周），看看宝宝的样子。这是重要的产检节点，可以了解宝宝的详细发育情况和排查结构畸形。继续胎教，多和宝宝互动，有助于促进胎儿大脑发育。"
+            },
+            // 第21-28周：活跃期
+            21: {
+                development: "宝宝的消化系统开始工作，开始有规律的吞咽和消化动作。皮肤开始变得不透明，开始有脂肪积累。皮下脂肪开始沉积，皮肤有皱纹。",
+                tips: "继续补充营养，注意钙质（每日约1000毫克）和铁质的摄入。可以开始了解母乳喂养知识，为未来做准备。保持适度运动，有助于改善血液循环，缓解孕期不适。"
+            },
+            22: {
+                development: "宝宝开始有规律的睡眠模式，动作更加协调。听觉系统继续发育，可以听到外界的声音。身长约28-34厘米，体重约600-700克。",
+                tips: "注意休息，避免过度劳累。可以开始准备待产包（建议在28-32周开始准备），包括产妇用品（如衣物、卫生巾、洗漱用品）和新生儿用品（如衣物、纸尿裤、奶瓶）。提前准备可应对突发临产。"
+            },
+            23: {
+                development: "宝宝的听力进一步发展，可以听到你的声音。皮肤开始变得不透明，开始有脂肪积累。大脑快速发育，开始有记忆能力。",
+                tips: "多和宝宝说话，进行胎教。注意保持心情愉悦，避免情绪波动。继续补充DHA，有助于胎儿大脑和视力发育。可以开始学习分娩知识，了解分娩过程和产程各阶段的特点。"
+            },
+            24: {
+                development: "宝宝的肺部开始发育，准备呼吸。消化系统继续发育，开始有规律的吞咽动作。皮下脂肪继续沉积，皮肤皱纹逐渐减少。",
+                tips: "完成糖耐量检测（24-28周），注意血糖控制。这是重要的产检节点，可以了解血糖情况，筛查妊娠期糖尿病。如血糖偏高，需控制饮食，避免高糖高脂食物。"
+            },
+            25: {
+                development: "宝宝开始有更多的反应，可能会对声音有反应。神经系统快速发育，开始有记忆能力。动作更加频繁有力。",
+                tips: "保持心情愉悦，避免情绪波动。可以开始了解分娩过程，为未来做准备。与医生讨论并制定分娩计划，包括选择分娩方式、是否使用镇痛措施等。"
+            },
+            26: {
+                development: "宝宝的眼睛开始睁开，可以感受到光线。皮肤开始变得不透明，开始有脂肪积累。视觉系统继续发育。",
+                tips: "注意用眼卫生，避免长时间看屏幕。可以开始进行适当的孕期运动，保持身体健康。继续补充营养，注意优质蛋白质、钙质、铁质和DHA的摄入。"
+            },
+            27: {
+                development: "宝宝的大脑快速发育，开始有记忆。消化系统继续发育，开始有规律的吞咽动作。各器官系统功能进一步完善。",
+                tips: "继续胎教，多和宝宝互动。注意补充营养，保持身体健康。可以开始了解分娩环境选择，提前了解并选择合适的分娩医院，熟悉医院的环境和流程。"
+            },
+            28: {
+                development: "宝宝开始有更多的动作，可能会踢腿。肺部继续发育，准备呼吸。身长约35厘米，体重约1000克，双顶径约7.0厘米，股骨长约5.0厘米。",
+                tips: "进入孕晚期，从本周开始每两周进行一次产检。注意休息，避免过度劳累。可以开始了解分娩知识，为未来做准备。与家人沟通，确定分娩时的陪伴人员，确保在需要时获得支持和帮助。"
+            },
+            // 第29-35周：准备期
+            29: {
+                development: "宝宝的肌肉和骨骼继续发育，动作更加有力。皮肤开始变得不透明，开始有脂肪积累。各器官系统功能进一步完善。",
+                tips: "保持适度运动，避免久坐。注意补充营养，保持身体健康。每周体重增长应控制在0.5公斤以内，避免过量摄入高糖高脂食物。适当进行温和运动，如散步，以防止体重增长过快引发并发症。"
+            },
+            30: {
+                development: "宝宝开始有更多的表情和动作，可能会踢腿和伸展。神经系统快速发育，开始有记忆能力。动作更加频繁有力。",
+                tips: "完成常规产检（每两周一次），了解宝宝的发育情况。注意休息，避免过度劳累。开始每天固定时间数胎动，早、中、晚各一次，每次一小时。正常情况下，每小时胎动3-5次。"
+            },
+            31: {
+                development: "宝宝的肺部继续发育，准备呼吸。消化系统继续发育，开始有规律的吞咽动作。呼吸系统功能进一步完善。",
+                tips: "注意呼吸练习，为分娩做准备。可以开始了解分娩方式，为未来选择做准备。学习放松技巧，如深呼吸、冥想等，有助于缓解分娩时的紧张和疼痛。若胎动突然增多或减少，可能提示胎儿缺氧，需及时就医。"
+            },
+            32: {
+                development: "宝宝开始有更多的反应，可能会对声音有反应。皮肤深红，面部胎毛脱落。身长约40厘米，体重约1500-1700克。",
+                tips: "完成常规产检，了解宝宝的发育情况。可以开始准备产假相关事宜。关注身体变化，如出现腰背酸痛、水肿、便秘等症状，可通过适当运动和饮食调整缓解。若出现胎动异常、阴道流液、持续腹痛、血压升高或头痛视物模糊等情况，需立即就医。"
+            },
+            33: {
+                development: "宝宝的大脑快速发育，开始有记忆。消化系统继续发育，开始有规律的吞咽动作。神经系统功能进一步完善。",
+                tips: "继续胎教，多和宝宝互动。注意补充营养，保持身体健康。保持积极心态，为分娩做好心理准备。继续监测胎动，记录宝宝的活跃时间。"
+            },
+            34: {
+                development: "宝宝的免疫系统开始发育，准备应对外界环境。皮肤开始变得不透明，开始有脂肪积累。各器官系统基本发育完成。",
+                tips: "完成常规产检，了解宝宝的发育情况。注意休息，避免过度劳累。继续控制体重增长，每周不超过0.5公斤。可以开始了解产兆识别：规律宫缩、见红、破水等临产征兆。"
+            },
+            35: {
+                development: "宝宝的肺部基本发育完成，可以开始呼吸练习。消化系统继续发育，开始有规律的吞咽动作。各器官系统功能基本完善。",
+                tips: "准备待产包，为分娩做准备。可以开始了解分娩过程，为未来做准备。确认待产包已准备齐全，包括产妇用品和新生儿用品。保持联系，随时准备应对突发情况。"
+            },
+            // 第36-40周：倒计时
+            36: {
+                development: "宝宝开始为出生做准备，头部可能开始入盆。所有器官基本发育完成，准备迎接新世界。身长约45厘米，体重约2700克，双顶径约8.5-9.0厘米，股骨长约7.0厘米。",
+                tips: "开始每周胎心监护和产检，密切注意宝宝的状况。准备迎接宝宝的到来，保持心情愉悦。继续监测胎动，若胎动异常需立即就医。了解产兆识别：规律宫缩（间隔时间缩短，强度增加）、见红（少量血性分泌物）、破水（羊水流出，需立即平卧并前往医院）。"
+            },
+            37: {
+                development: "宝宝已经足月，随时可能出生。所有器官发育完成，准备迎接新世界。宝宝已经具备在子宫外生存的能力。",
+                tips: "密切注意产兆，如见红、破水、规律宫缩等。保持联系，随时准备入院。若出现破水，应立即平卧，尽快前往医院。保持积极心态，学习放松技巧，如深呼吸、冥想等，有助于缓解分娩时的紧张和疼痛。"
+            },
+            38: {
+                development: "宝宝继续增重，准备出生。所有器官发育完成，随时准备迎接新世界。身长约50厘米，体重约3200-3500克，双顶径约8.5-9.5厘米，股骨长约7.0-7.5厘米。",
+                tips: "保持联系，随时准备入院。注意休息，保持体力，为分娩做准备。继续每周胎心监护，密切监测胎儿状况。若出现规律宫缩、见红或破水等产兆，应立即前往医院。保持心情愉悦，相信自己和宝宝。"
+            },
+            39: {
+                development: "宝宝随时可能出生，保持警惕。所有器官发育完成，准备迎接新世界。宝宝已经做好出生的所有准备。",
+                tips: "注意产兆，准备入院。保持心情愉悦，相信自己和宝宝。规律宫缩逐渐变得有规律，间隔时间缩短，强度增加，可能是临产的征兆。见红通常提示宫颈开始扩张，是临产的前兆之一。若出现破水，应立即平卧并尽快前往医院。"
+            },
+            40: {
+                development: "预产期到了，宝宝随时可能出生！所有器官发育完成，准备迎接新世界。身长约50厘米，体重约3200-3500克，双顶径约8.5-9.5厘米，股骨长约7.0-7.5厘米。",
+                tips: "密切注意产兆，准备入院。保持心情愉悦，相信自己和宝宝，准备迎接新生命的到来！若超过预产期一周仍未分娩，需咨询医生。保持积极心态，你已经做好了充分的准备，相信分娩过程会顺利。"
+            }
+        };
+
+        // 产检节点配置
+        function getCheckupTags(week) {
+            const tags = [];
+            // 6-8周：确认妊娠（B超检查确认宫内妊娠）
+            if (week >= 6 && week <= 8) {
+                tags.push({ text: "💗 怀孕确认", class: "confirm" });
+            }
+            // 8-12周：建档及基础检查
+            if (week >= 8 && week <= 12) {
+                tags.push({ text: "📁 建档建议", class: "file" });
+            }
+            // 11-13+6周：NT检查
+            if (week >= 11 && week <= 13) {
+                tags.push({ text: "🧪 NT检查", class: "nt" });
+            }
+            // 15-20周：唐氏筛查
+            if (week >= 15 && week <= 20) {
+                tags.push({ text: "🩺 唐筛建议", class: "screen" });
+            }
+            // 20-24周：大排畸（系统超声检查）
+            if (week >= 20 && week <= 24) {
+                tags.push({ text: "🔍 大排畸", class: "ultrasound" });
+            }
+            // 24-28周：糖耐量试验
+            if (week >= 24 && week <= 28) {
+                tags.push({ text: "🍬 糖耐检测", class: "screen" });
+            }
+            // 28周：进入孕晚期
+            if (week === 28) {
+                tags.push({ text: "🌙 孕晚期", class: "late" });
+            }
+            // 32周：产假准备期
+            if (week === 32) {
+                tags.push({ text: "🏖️ 产假准备", class: "leave" });
+            }
+            // 36周起：每周胎心监护
+            if (week >= 36 && week <= 39) {
+                tags.push({ text: "⏱️ 预产期倒计时", class: "countdown" });
+            }
+            // 40周：预产期当天
+            if (week === 40) {
+                tags.push({ text: "🎉 预产期当天", class: "due" });
+            }
+            return tags;
+        }
+
+        // 日期格式化
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 计算孕周和日期
+        function calculatePregnancy(lmpDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const lmp = new Date(lmpDate);
+            lmp.setHours(0, 0, 0, 0);
+
+            // 预产期 = LMP + 280天
+            const dueDate = new Date(lmp);
+            dueDate.setDate(dueDate.getDate() + 280);
+
+            // 已怀孕天数
+            const daysDiff = Math.floor((today - lmp) / (1000 * 60 * 60 * 24));
+            const pregnantDays = Math.max(0, daysDiff);
+
+            // 当前孕周
+            const currentWeek = Math.floor(pregnantDays / 7) + 1;
+            const currentDay = pregnantDays % 7;
+
+            // 距离预产期天数
+            const daysRemaining = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+
+            return {
+                currentWeek: Math.min(currentWeek, 40),
+                currentDay,
+                pregnantDays,
+                dueDate,
+                daysRemaining: Math.max(0, daysRemaining)
+            };
+        }
+
+        // 计算某周的日期区间
+        function getWeekDateRange(lmpDate, week) {
+            const lmp = new Date(lmpDate);
+            lmp.setHours(0, 0, 0, 0);
+            
+            const startDate = new Date(lmp);
+            startDate.setDate(startDate.getDate() + (week - 1) * 7);
+            
+            const endDate = new Date(startDate);
+            endDate.setDate(endDate.getDate() + 6);
+            
+            return {
+                start: formatDate(startDate),
+                end: formatDate(endDate)
+            };
+        }
+
+        // 更新仪表盘
+        function updateDashboard(lmpDate) {
+            const calc = calculatePregnancy(lmpDate);
+            
+            document.getElementById('currentWeek').textContent = 
+                `${calc.currentWeek}周 + ${calc.currentDay}天`;
+            document.getElementById('pregnantDays').textContent = `${calc.pregnantDays} 天`;
+            document.getElementById('dueDate').textContent = formatDate(calc.dueDate);
+            document.getElementById('daysRemaining').textContent = 
+                calc.daysRemaining > 0 ? `还剩 ${calc.daysRemaining} 天` : '已到预产期';
+        }
+
+        // 渲染时间轴
+        function renderTimeline(lmpDate) {
+            const calc = calculatePregnancy(lmpDate);
+            const currentWeek = calc.currentWeek;
+            const timelineList = document.getElementById('timelineList');
+            timelineList.innerHTML = '';
+
+            for (let week = 1; week <= 40; week++) {
+                const weekData = pregnancyData[week];
+                const dateRange = getWeekDateRange(lmpDate, week);
+                const tags = getCheckupTags(week);
+                const isCurrentWeek = week === currentWeek;
+                const isWeek40 = week === 40;
+
+                const card = document.createElement('div');
+                card.className = `week-card ${isCurrentWeek ? 'current-week' : ''} ${isWeek40 ? 'week-40' : ''}`;
+                card.id = `week-${week}`;
+
+                let tagsHTML = '';
+                if (tags.length > 0) {
+                    tagsHTML = '<div class="week-tags">';
+                    tags.forEach(tag => {
+                        tagsHTML += `<span class="week-tag ${tag.class}">${tag.text}</span>`;
+                    });
+                    tagsHTML += '</div>';
+                }
+
+                card.innerHTML = `
+                    <div class="week-number">
+                        第${week}周
+                        ${isCurrentWeek ? '<span class="current-week-badge">当前</span>' : ''}
+                    </div>
+                    <div class="week-content">
+                        <div class="week-header">
+                            <div class="week-title">第 ${week} 周</div>
+                            <div class="week-date-range">${dateRange.start} 至 ${dateRange.end}</div>
+                        </div>
+                        ${tagsHTML}
+                        <div class="week-modules">
+                            <div class="week-module">
+                                <div class="week-module-title">👶 胎儿发育要点</div>
+                                <div class="week-module-content">${weekData.development}</div>
+                            </div>
+                            <div class="week-module">
+                                <div class="week-module-title">💝 孕妈注意事项</div>
+                                <div class="week-module-content">${weekData.tips}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                timelineList.appendChild(card);
+            }
+
+            // 滚动到当前周
+            if (currentWeek <= 40) {
+                setTimeout(() => {
+                    const currentCard = document.getElementById(`week-${currentWeek}`);
+                    if (currentCard) {
+                        currentCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 300);
+            }
+        }
+
+        // 初始化
+        function init() {
+            const lmpInput = document.getElementById('lmpDate');
+            
+            // 加载保存的日期
+            const savedDate = localStorage.getItem('lmpDate');
+            if (savedDate) {
+                lmpInput.value = savedDate;
+                updateDashboard(savedDate);
+                renderTimeline(savedDate);
+            } else {
+                // 默认设置为今天
+                const today = new Date();
+                lmpInput.value = formatDate(today);
+                updateDashboard(lmpInput.value);
+                renderTimeline(lmpInput.value);
+            }
+
+            // 监听日期变化
+            lmpInput.addEventListener('change', function() {
+                const selectedDate = this.value;
+                if (selectedDate) {
+                    localStorage.setItem('lmpDate', selectedDate);
+                    updateDashboard(selectedDate);
+                    renderTimeline(selectedDate);
+                }
+            });
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

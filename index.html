@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>孕期陪跑助手 - Pregnancy Timeline Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .week-card {
+            animation: fadeIn 0.3s ease-out;
+        }
+        .current-week {
+            transform: scale(1.02);
+            box-shadow: 0 10px 25px rgba(236, 72, 153, 0.3);
+        }
+        .checkup-badge {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+    </style>
+</head>
+<body class="bg-pink-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-pink-600 mb-2">
+                <i class="fas fa-baby text-pink-500"></i> 孕期陪跑助手
+            </h1>
+            <p class="text-gray-600">记录每一个珍贵的时刻</p>
+        </header>
+
+        <!-- Input Section -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <label class="block text-lg font-semibold text-gray-700 mb-4">
+                <i class="fas fa-calendar-alt text-pink-500"></i> 末次月经日期 (LMP)
+            </label>
+            <input 
+                type="date" 
+                id="lmpDate" 
+                class="w-full px-4 py-3 border-2 border-pink-200 rounded-lg focus:border-pink-400 focus:outline-none text-lg"
+            >
+            
+            <!-- Status Overview Cards -->
+            <div id="statusCards" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Cards will be populated by JavaScript -->
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="mt-6">
+                <div class="flex justify-between text-sm text-gray-600 mb-2">
+                    <span>孕周进度</span>
+                    <span id="progressText">0 / 40 周</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                    <div id="progressBar" class="bg-gradient-to-r from-pink-400 to-pink-600 h-4 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline Section -->
+        <div id="timeline" class="space-y-4">
+            <!-- Timeline cards will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <script>
+        // Pregnancy data for weeks 1-40
+        const pregnancyData = [
+            { week: 1, fruit: "受精卵", size: "0.1-0.2mm", desc: "受精卵正在形成，准备着床。", checkup: null, todo: "保持健康生活方式" },
+            { week: 2, fruit: "芝麻", size: "0.2mm", desc: "受精卵开始着床。", checkup: null, todo: "避免有害物质" },
+            { week: 3, fruit: "罂粟籽", size: "0.3-0.5mm", desc: "胚胎开始发育，心脏开始形成。", checkup: null, todo: "开始补充叶酸" },
+            { week: 4, fruit: "芝麻", size: "2mm", desc: "胚胎快速发育，神经管开始形成。", checkup: null, todo: "确认怀孕，预约产检" },
+            { week: 5, fruit: "苹果籽", size: "3-5mm", desc: "心脏开始跳动，四肢开始萌芽。", checkup: null, todo: "注意休息，避免劳累" },
+            { week: 6, fruit: "绿豆", size: "6-7mm", desc: "大脑快速发育，面部特征开始显现。", checkup: null, todo: "保持心情愉悦" },
+            { week: 7, fruit: "蓝莓", size: "10-13mm", desc: "手指和脚趾开始分离，眼睛形成。", checkup: null, todo: "注意营养均衡" },
+            { week: 8, fruit: "覆盆子", size: "14-20mm", desc: "所有主要器官开始形成。", checkup: null, todo: "避免剧烈运动" },
+            { week: 9, fruit: "葡萄", size: "22-30mm", desc: "宝宝开始有动作，但你还感觉不到。", checkup: null, todo: "定期产检" },
+            { week: 10, fruit: "金桔", size: "31-42mm", desc: "手指和脚趾完全分开，指甲开始生长。", checkup: null, todo: "保持充足睡眠" },
+            { week: 11, fruit: "无花果", size: "44-60mm", desc: "宝宝开始有吞咽和打嗝的动作。", checkup: null, todo: "准备建档资料" },
+            { week: 12, fruit: "柠檬", size: "5.4cm, 14g", desc: "宝宝的手指和脚趾已经分开啦，可以握拳了。", checkup: "🟢 第一次产检 & NT检查 (建档)", todo: "完成NT检查，建立孕期档案" },
+            { week: 13, fruit: "李子", size: "6.5cm, 20g", desc: "宝宝开始有表情，可以皱眉和微笑。", checkup: null, todo: "继续补充营养" },
+            { week: 14, fruit: "桃子", size: "8.7cm, 43g", desc: "宝宝开始有呼吸运动，虽然还在羊水中。", checkup: null, todo: "注意饮食卫生" },
+            { week: 15, fruit: "苹果", size: "10cm, 70g", desc: "宝宝可以听到声音了，开始对外界有反应。", checkup: null, todo: "可以开始胎教了" },
+            { week: 16, fruit: "牛油果", size: "11.6cm, 100g", desc: "宝宝开始有规律的睡眠和清醒周期。", checkup: "🔵 唐筛/无创DNA检查", todo: "完成唐筛或无创DNA检查" },
+            { week: 17, fruit: "梨", size: "13cm, 140g", desc: "宝宝开始有更多的动作，可能会踢腿。", checkup: null, todo: "感受胎动" },
+            { week: 18, fruit: "甜椒", size: "14.2cm, 190g", desc: "宝宝的骨骼开始硬化，可以听到心跳声。", checkup: null, todo: "保持适度运动" },
+            { week: 19, fruit: "番茄", size: "15.3cm, 240g", desc: "宝宝开始有规律的吞咽羊水。", checkup: null, todo: "注意补钙" },
+            { week: 20, fruit: "香蕉", size: "16.4cm, 300g", desc: "宝宝开始有更多的表情和动作。", checkup: "🟣 大排畸检查 (四维彩超)", todo: "完成大排畸检查，看看宝宝的样子" },
+            { week: 21, fruit: "胡萝卜", size: "17.5cm, 360g", desc: "宝宝的消化系统开始工作。", checkup: null, todo: "继续补充营养" },
+            { week: 22, fruit: "芒果", size: "19cm, 430g", desc: "宝宝开始有规律的睡眠模式。", checkup: null, todo: "注意休息" },
+            { week: 23, fruit: "大茄子", size: "20cm, 500g", desc: "宝宝的听力进一步发展，可以听到你的声音。", checkup: null, todo: "多和宝宝说话" },
+            { week: 24, fruit: "玉米", size: "21cm, 600g", desc: "宝宝的肺部开始发育，准备呼吸。", checkup: "🟠 糖耐量检测 (OGTT)", todo: "完成糖耐量检测，注意血糖控制" },
+            { week: 25, fruit: "花椰菜", size: "22cm, 700g", desc: "宝宝开始有更多的反应，可能会对声音有反应。", checkup: null, todo: "保持心情愉悦" },
+            { week: 26, fruit: "生菜", size: "23cm, 800g", desc: "宝宝的眼睛开始睁开，可以感受到光线。", checkup: null, todo: "注意用眼卫生" },
+            { week: 27, fruit: "花椰菜", size: "24cm, 900g", desc: "宝宝的大脑快速发育，开始有记忆。", checkup: null, todo: "继续胎教" },
+            { week: 28, fruit: "茄子", size: "25cm, 1000g", desc: "宝宝开始有更多的动作，可能会踢腿。", checkup: null, todo: "注意胎动频率" },
+            { week: 29, fruit: "南瓜", size: "26cm, 1150g", desc: "宝宝的肌肉和骨骼继续发育。", checkup: null, todo: "保持适度运动" },
+            { week: 30, fruit: "卷心菜", size: "27cm, 1300g", desc: "宝宝开始有更多的表情和动作。", checkup: "常规产检", todo: "完成常规产检" },
+            { week: 31, fruit: "椰子", size: "28cm, 1500g", desc: "宝宝的肺部继续发育，准备呼吸。", checkup: null, todo: "注意呼吸练习" },
+            { week: 32, fruit: "白菜", size: "29cm, 1700g", desc: "宝宝开始有更多的反应，可能会对声音有反应。", checkup: "常规产检", todo: "完成常规产检" },
+            { week: 33, fruit: "菠萝", size: "30cm, 1900g", desc: "宝宝的大脑快速发育，开始有记忆。", checkup: null, todo: "继续胎教" },
+            { week: 34, fruit: "哈密瓜", size: "31cm, 2100g", desc: "宝宝的免疫系统开始发育。", checkup: "常规产检", todo: "完成常规产检" },
+            { week: 35, fruit: "哈密瓜", size: "32cm, 2400g", desc: "宝宝的肺部基本发育完成。", checkup: null, todo: "准备待产包" },
+            { week: 36, fruit: "罗马生菜", size: "33cm, 2700g", desc: "宝宝开始为出生做准备，头部可能入盆。", checkup: "每周一次胎心监护", todo: "开始每周胎心监护，准备迎接宝宝" },
+            { week: 37, fruit: "瑞士甜菜", size: "34cm, 2950g", desc: "宝宝已经足月，随时可能出生。", checkup: "每周一次胎心监护", todo: "密切注意产兆" },
+            { week: 38, fruit: "韭菜", size: "35cm, 3100g", desc: "宝宝继续增重，准备出生。", checkup: "每周一次胎心监护", todo: "保持联系，随时准备" },
+            { week: 39, fruit: "小南瓜", size: "36cm, 3300g", desc: "宝宝随时可能出生，保持警惕。", checkup: "每周一次胎心监护", todo: "注意产兆，准备入院" },
+            { week: 40, fruit: "小西瓜", size: "37-38cm, 3500g", desc: "预产期到了，宝宝随时可能出生！", checkup: "每周一次胎心监护", todo: "密切注意产兆，准备迎接宝宝" }
+        ];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            const lmpInput = document.getElementById('lmpDate');
+            const statusCards = document.getElementById('statusCards');
+            const timeline = document.getElementById('timeline');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+
+            // Load saved date from localStorage
+            const savedDate = localStorage.getItem('lmpDate');
+            if (savedDate) {
+                lmpInput.value = savedDate;
+                updateTimeline();
+            }
+
+            // Set today as default if no saved date
+            if (!savedDate) {
+                const today = new Date();
+                lmpInput.value = today.toISOString().split('T')[0];
+            }
+
+            // Event listener for date change
+            lmpInput.addEventListener('change', function() {
+                localStorage.setItem('lmpDate', this.value);
+                updateTimeline();
+            });
+
+            function updateTimeline() {
+                const lmpDate = new Date(lmpInput.value);
+                if (!lmpInput.value || isNaN(lmpDate.getTime())) {
+                    return;
+                }
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                lmpDate.setHours(0, 0, 0, 0);
+
+                // Calculate due date (LMP + 280 days)
+                const dueDate = new Date(lmpDate);
+                dueDate.setDate(dueDate.getDate() + 280);
+
+                // Calculate current week and day
+                const daysDiff = Math.floor((today - lmpDate) / (1000 * 60 * 60 * 24));
+                const currentWeek = Math.floor(daysDiff / 7) + 1;
+                const currentDay = daysDiff % 7;
+
+                // Calculate days until due date
+                const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+
+                // Update status cards
+                statusCards.innerHTML = `
+                    <div class="bg-gradient-to-br from-pink-100 to-pink-200 rounded-xl p-4">
+                        <div class="text-sm text-gray-600 mb-1">预产期</div>
+                        <div class="text-2xl font-bold text-pink-600">${formatDate(dueDate)}</div>
+                    </div>
+                    <div class="bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl p-4">
+                        <div class="text-sm text-gray-600 mb-1">当前孕周</div>
+                        <div class="text-2xl font-bold text-purple-600">
+                            ${currentWeek > 40 ? '40+' : currentWeek} 周 ${currentDay} 天
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl p-4">
+                        <div class="text-sm text-gray-600 mb-1">距离宝宝出生</div>
+                        <div class="text-2xl font-bold text-orange-600">
+                            ${daysUntilDue > 0 ? daysUntilDue + ' 天' : '已到预产期'}
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl p-4">
+                        <div class="text-sm text-gray-600 mb-1">孕期进度</div>
+                        <div class="text-2xl font-bold text-blue-600">
+                            ${Math.min(Math.round((currentWeek / 40) * 100), 100)}%
+                        </div>
+                    </div>
+                `;
+
+                // Update progress bar
+                const progress = Math.min((currentWeek / 40) * 100, 100);
+                progressBar.style.width = progress + '%';
+                progressText.textContent = `${Math.min(currentWeek, 40)} / 40 周`;
+
+                // Render timeline
+                timeline.innerHTML = '';
+                let currentWeekElement = null;
+
+                pregnancyData.forEach((data, index) => {
+                    const isCurrentWeek = data.week === Math.min(currentWeek, 40);
+                    const isPast = data.week < currentWeek;
+                    const isFuture = data.week > currentWeek;
+
+                    const card = document.createElement('div');
+                    card.className = `week-card bg-white rounded-xl shadow-md p-6 transition-all duration-300 ${
+                        isCurrentWeek ? 'current-week border-4 border-pink-400' : ''
+                    } ${isPast ? 'opacity-75' : ''}`;
+                    card.id = `week-${data.week}`;
+
+                    let checkupBadge = '';
+                    if (data.checkup) {
+                        checkupBadge = `
+                            <div class="checkup-badge mt-3 inline-block bg-gradient-to-r from-pink-500 to-purple-500 text-white px-4 py-2 rounded-full font-semibold text-sm shadow-lg">
+                                <i class="fas fa-calendar-check mr-2"></i>${data.checkup}
+                            </div>
+                        `;
+                    }
+
+                    card.innerHTML = `
+                        <div class="flex items-start justify-between mb-3">
+                            <h2 class="text-2xl font-bold text-gray-800">
+                                第 ${data.week} 周
+                                ${isCurrentWeek ? '<span class="ml-2 text-pink-500"><i class="fas fa-star"></i> 当前周</span>' : ''}
+                            </h2>
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">${isPast ? '已完成' : isFuture ? '即将到来' : '进行中'}</div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <span class="inline-block bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-sm font-medium">
+                                <i class="fas fa-apple-alt mr-1"></i> 像 ${data.fruit}
+                            </span>
+                            <span class="ml-2 inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
+                                <i class="fas fa-ruler-combined mr-1"></i> ${data.size}
+                            </span>
+                        </div>
+                        <p class="text-gray-600 mb-3">${data.desc}</p>
+                        ${checkupBadge}
+                        ${data.todo ? `<div class="mt-3 text-sm text-gray-500"><i class="fas fa-tasks mr-1"></i>${data.todo}</div>` : ''}
+                    `;
+
+                    timeline.appendChild(card);
+
+                    if (isCurrentWeek) {
+                        currentWeekElement = card;
+                    }
+                });
+
+                // Scroll to current week after a short delay
+                if (currentWeekElement) {
+                    setTimeout(() => {
+                        currentWeekElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 300);
+                }
+            }
+
+            function formatDate(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            // Initial render
+            updateTimeline();
+        });
+    </script>
+</body>
+</html>
