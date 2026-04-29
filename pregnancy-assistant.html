@@ -329,6 +329,7 @@
         .week-card {
             animation: fadeIn 0.3s ease-out;
         }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
     </style>
 </head>
 <body>
@@ -342,12 +343,15 @@
                 </div>
                 <div class="banner-right">
                     <div class="date-input-wrapper">
+                        <label for="lmpDate" class="sr-only">末次月经日期</label>
                         <input 
                             type="date" 
                             id="lmpDate" 
                             class="date-input" 
                             placeholder="请选择末次月经日期"
+                            aria-describedby="dateMsg"
                         >
+                        <div id="dateMsg" style="color:#c00;margin-top:6px;font-size:13px;display:none;" aria-live="polite"></div>
                     </div>
                 </div>
             </div>
@@ -673,6 +677,97 @@
                 calc.daysRemaining > 0 ? `还剩 ${calc.daysRemaining} 天` : '已到预产期';
         }
 
+        // 将强制性措辞软化并追加就医提示
+        function softenTips(tips) {
+            if (!tips) return '';
+            let t = String(tips);
+            // 将绝对性词语改为更柔和的表达
+            t = t.replace(/\b避免\b/g, '通常建议避免');
+            t = t.replace(/\b应\b/g, '建议');
+            // 确保句末有句号
+            if (!/[。！？.]$/.test(t)) t = t + '。';
+            t += ' 如有不适或疑虑，请咨询医生；此内容仅供参考，不替代专业医疗建议。';
+            return t;
+        }
+
+        // 软化 development 文本：将绝对断言转为“可能/通常”类措辞，保留原意但降低确定性
+        function softenDevelopment(text) {
+            if (!text) return '';
+            let t = String(text);
+            // 若已经包含“可能”则跳过相应替换，使用负向先行断言避免重复
+            // 将“开始”替换为“可能开始”
+            t = t.replace(/(?<!可能)开始/g, '可能开始');
+            // 将“可以”替换为“可能可以”
+            t = t.replace(/(?<!可能)可以/g, '可能可以');
+            // 将“会”替换为“可能会”（避免已带可能的重复）
+            t = t.replace(/(?<!可能)会/g, '可能会');
+            // 将“已经”改为“通常会/可能已”以降低确定性
+            t = t.replace(/已经/g, '通常会或可能已');
+            // 结尾追加温和提示
+            if (!/[。！？.]$/.test(t)) t = t + '。';
+            t += ' （内容为一般参考，如有疑虑或特殊情况，请咨询医生。）';
+            return t;
+        }
+
+        // 使用表格化数据估算胎儿身长/体重（推荐：用权威参考值填充 measurementsTable）
+        const measurementsTable = {
+            // 示例：在这里填入权威参考值（单位：cm 和 g），覆盖或补充下列示例值
+            12: { lengthCm: 6.0, weightG: 14 },
+            20: { lengthCm: 25.0, weightG: 300 },
+            28: { lengthCm: 35.0, weightG: 1000 },
+            36: { lengthCm: 45.0, weightG: 2500 },
+            40: { lengthCm: 50.0, weightG: 3200 }
+        };
+
+        function estimateMeasurements(week) {
+            // 若表格中有精确值，直接返回；否则对邻近已知周进行线性插值
+            if (measurementsTable[week]) {
+                return { length: measurementsTable[week].lengthCm + ' cm', weight: measurementsTable[week].weightG + ' g' };
+            }
+
+            // 找到最近小于 week 的已知周和最近大于 week 的已知周
+            const knownWeeks = Object.keys(measurementsTable).map(n => parseInt(n)).sort((a, b) => a - b);
+            if (knownWeeks.length === 0) return { length: '--', weight: '--' };
+
+            let lower = knownWeeks[0];
+            let upper = knownWeeks[knownWeeks.length - 1];
+            for (let i = 0; i < knownWeeks.length; i++) {
+                if (knownWeeks[i] <= week) lower = knownWeeks[i];
+                if (knownWeeks[i] >= week) { upper = knownWeeks[i]; break; }
+            }
+
+            // 如果 week 在已知表格之外，则使用最近值
+            if (week <= lower) {
+                const v = measurementsTable[lower];
+                return { length: v.lengthCm + ' cm', weight: v.weightG + ' g' };
+            }
+            if (week >= upper) {
+                const v = measurementsTable[upper];
+                return { length: v.lengthCm + ' cm', weight: v.weightG + ' g' };
+            }
+
+            // 线性插值
+            const low = measurementsTable[lower];
+            const up = measurementsTable[upper];
+            const ratio = (week - lower) / (upper - lower);
+            const lengthCm = (low.lengthCm + (up.lengthCm - low.lengthCm) * ratio).toFixed(1);
+            const weightG = Math.round(low.weightG + (up.weightG - low.weightG) * ratio);
+            return { length: lengthCm + ' cm', weight: weightG + ' g' };
+        }
+
+        // 返回该孕周常见的产检/筛查项目（用于展示参考）
+        function getCommonTests(week) {
+            const arr = [];
+            if (week >= 6 && week <= 8) arr.push('B超（妊娠确认）');
+            if (week >= 11 && week <= 13) arr.push('NT筛查');
+            if (week >= 15 && week <= 20) arr.push('唐筛或无创DNA');
+            if (week >= 20 && week <= 24) arr.push('大排畸超声');
+            if (week >= 24 && week <= 28) arr.push('糖耐量（OGTT）');
+            if (week >= 28 && week <= 36) arr.push('常规产检（血压/尿检/胎心）');
+            if (week >= 36) arr.push('频繁产检与待产准备');
+            return arr;
+        }
+
         // 渲染时间轴
         function renderTimeline(lmpDate) {
             const calc = calculatePregnancy(lmpDate);
@@ -700,6 +795,20 @@
                     tagsHTML += '</div>';
                 }
 
+                const tipsHtml = softenTips(weekData.tips);
+                const meas = estimateMeasurements(week);
+                const tests = getCommonTests(week);
+                const moreInfoHtml = `
+                    <div class="week-module">
+                        <div class="week-module-title">📊 更多信息</div>
+                        <div class="week-module-content">
+                            身长（估计）：${meas.length}<br>
+                            体重（估计）：${meas.weight}<br>
+                            常见检查：${tests.length ? tests.join('、') : '无'}
+                        </div>
+                    </div>
+                `;
+
                 card.innerHTML = `
                     <div class="week-number">
                         第${week}周
@@ -714,12 +823,13 @@
                         <div class="week-modules">
                             <div class="week-module">
                                 <div class="week-module-title">👶 胎儿发育要点</div>
-                                <div class="week-module-content">${weekData.development}</div>
+                                <div class="week-module-content">${softenDevelopment(weekData.development)}</div>
                             </div>
                             <div class="week-module">
                                 <div class="week-module-title">💝 孕妈注意事项</div>
-                                <div class="week-module-content">${weekData.tips}</div>
+                                <div class="week-module-content">${tipsHtml}</div>
                             </div>
+                            ${moreInfoHtml}
                         </div>
                     </div>
                 `;
@@ -738,20 +848,50 @@
             }
         }
 
+        // 简单校验末次月经日期（不允许未来日期）
+        function validateLmp(lmpDate) {
+            if (!lmpDate) return { valid: false, message: '请选择末次月经日期' };
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const lmp = new Date(lmpDate);
+            lmp.setHours(0,0,0,0);
+            if (lmp > today) {
+                return { valid: false, message: '末次月经日期不能为将来日期，请检查' };
+            }
+            // 过久之前的日期（比如 > 365 天）提示但不阻止
+            const daysDiff = Math.floor((today - lmp) / (1000 * 60 * 60 * 24));
+            if (daysDiff > 365) {
+                return { valid: true, message: '注意：所选日期距离今天超过一年，结果可能不准确' };
+            }
+            return { valid: true, message: '' };
+        }
+
         // 初始化
         function init() {
             const lmpInput = document.getElementById('lmpDate');
+            const dateMsg = document.getElementById('dateMsg');
             
             // 加载保存的日期
             const savedDate = localStorage.getItem('lmpDate');
             if (savedDate) {
+                const v = validateLmp(savedDate);
                 lmpInput.value = savedDate;
-                updateDashboard(savedDate);
-                renderTimeline(savedDate);
+                if (v.valid) {
+                    dateMsg.style.display = v.message ? 'block' : 'none';
+                    dateMsg.textContent = v.message;
+                    updateDashboard(savedDate);
+                    renderTimeline(savedDate);
+                } else {
+                    dateMsg.style.display = 'block';
+                    dateMsg.textContent = v.message;
+                }
             } else {
-                // 默认设置为今天
+                // 默认设置为今天以便预览，但验证未来日期（不会是未来）
                 const today = new Date();
                 lmpInput.value = formatDate(today);
+                const v = validateLmp(lmpInput.value);
+                dateMsg.style.display = v.message ? 'block' : 'none';
+                dateMsg.textContent = v.message;
                 updateDashboard(lmpInput.value);
                 renderTimeline(lmpInput.value);
             }
@@ -759,6 +899,14 @@
             // 监听日期变化
             lmpInput.addEventListener('change', function() {
                 const selectedDate = this.value;
+                const v = validateLmp(selectedDate);
+                if (!v.valid) {
+                    dateMsg.style.display = 'block';
+                    dateMsg.textContent = v.message;
+                    return;
+                }
+                dateMsg.style.display = v.message ? 'block' : 'none';
+                dateMsg.textContent = v.message;
                 if (selectedDate) {
                     localStorage.setItem('lmpDate', selectedDate);
                     updateDashboard(selectedDate);
